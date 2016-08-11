@@ -8,8 +8,9 @@ class ControllerBase
   attr_reader :req, :res, :params
 
   # Setup the controller
-  def initialize(req, res)
-    @req, @res = req, res
+  def initialize(req, res, params)
+    @req, @res, @params = req, res, params
+    @params.merge!(@req.params)
     @already_built_response = false
   end
 
@@ -24,7 +25,7 @@ class ControllerBase
     @res.header['location'] = url
     @res.status = 302
     session.store_session(@res)
-    
+
     @already_built_response = true
   end
 
@@ -47,7 +48,6 @@ class ControllerBase
     template_content = File.read("views/#{self.class.to_s.underscore}/#{template_name}.html.erb")
 
     render_content(ERB.new(template_content).result(binding), "text/html")
-
   end
 
   # method exposing a `Session` object
@@ -56,6 +56,14 @@ class ControllerBase
   end
 
   # use this with the router to call action_name (:index, :show, :create...)
-  def invoke_action(name)
+  def invoke_action(action_name)
+    # send to call appropriate action
+
+    self.send(action_name)
+
+    # check to see if template was rendered
+    # if not, then render
+    raise unless already_built_response?
+    render(action_name)
   end
 end
